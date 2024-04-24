@@ -29,44 +29,48 @@ const initialCapabilities = [
   ),
   MatrixCapabilities.AlwaysOnScreen,
 ];
+async function setup() {
+  const widgetApi = await WidgetApiImpl.create({
+    capabilities: initialCapabilities,
+  });
 
-const widgetApi = await WidgetApiImpl.create({
-  capabilities: initialCapabilities,
-});
+  const urlParams = new URLSearchParams(window.location.search);
+  const deviceId = urlParams.get("device_id")!;
+  const roomId = urlParams.get("room_id")!;
+  const displayName = urlParams.get("display_name")!;
 
-const urlParams = new URLSearchParams(window.location.search);
-const deviceId = urlParams.get("device_id")!;
-const roomId = urlParams.get("room_id")!;
-const displayName = urlParams.get("display_name")!;
+  const roomName =
+    (
+      await widgetApi.receiveStateEvents<{ name: string }>(
+        STATE_EVENT_ROOM_NAME
+      )
+    )[0]?.content?.name ?? roomId;
 
-const roomName =
-  (
-    await widgetApi.receiveStateEvents<{ name: string }>(STATE_EVENT_ROOM_NAME)
-  )[0]?.content?.name ?? roomId;
+  const token = await widgetApi.requestOpenIDConnectToken();
+  const appContainer = document.getElementById("app");
+  if (appContainer) {
+    const t = token.access_token ?? "{No access token found!}";
+    const d = token.matrix_server_name ?? "{No matrix server found!}";
+    const n = roomName;
+    const r = roomId;
+    appContainer.innerText = `Token: ${t}\n\nServer: ${d}\nroomName: ${n}\nroomId: ${r}\nJoinURL: unknown`;
+    const { url } = await getBBBJoinUrl(
+      deviceId,
+      roomId,
+      displayName,
+      BBB_SERVICE_URL,
+      roomName,
+      token
+    );
 
-const token = await widgetApi.requestOpenIDConnectToken();
-const appContainer = document.getElementById("app");
-if (appContainer) {
-  const t = token.access_token ?? "{No access token found!}";
-  const d = token.matrix_server_name ?? "{No matrix server found!}";
-  const n = roomName;
-  const r = roomId;
-  appContainer.innerText = `Token: ${t}\n\nServer: ${d}\nroomName: ${n}\nroomId: ${r}\nJoinURL: unknown`;
-  const { url } = await getBBBJoinUrl(
-    deviceId,
-    displayName,
-    BBB_SERVICE_URL,
-    roomName,
-    token
-  );
+    console.log("Join URL: ", url);
+    appContainer.innerText = `Token: ${t}\n\nServer: ${d}\nroomName: ${n}\nroomId: ${r}\nJoinURL: ${url}`;
+    (widgetApi as WidgetApiImpl).matrixWidgetApi.setAlwaysOnScreen(true);
 
-  console.log("Join URL: ", url);
-  appContainer.innerText = `Token: ${t}\n\nServer: ${d}\nroomName: ${n}\nroomId: ${r}\nJoinURL: ${url}`;
-  (widgetApi as WidgetApiImpl).matrixWidgetApi.setAlwaysOnScreen(true);
-
-  window.location.replace(url);
-  // const iframe = document.getElementById("widgetFrame") as HTMLIFrameElement;
-  // iframe.src = url;
+    window.location.replace(url);
+    // const iframe = document.getElementById("widgetFrame") as HTMLIFrameElement;
+    // iframe.src = url;
+  }
 }
 
 interface BBBJoinUrl {
@@ -75,6 +79,7 @@ interface BBBJoinUrl {
 
 async function getBBBJoinUrl(
   deviceId: string,
+  roomId: string,
   displayName: string,
   bbbServiceUrl: string,
   roomName: string,
@@ -105,3 +110,5 @@ async function getBBBJoinUrl(
     throw new Error("SFU Config fetch failed with exception " + e);
   }
 }
+
+setup();
