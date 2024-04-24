@@ -65,7 +65,7 @@ async function setup() {
 
     console.log("Join URL: ", url);
     appContainer.innerText = `Token: ${t}\n\nServer: ${d}\nroomName: ${n}\nroomId: ${r}\nJoinURL: ${url}`;
-    (widgetApi as WidgetApiImpl).matrixWidgetApi.setAlwaysOnScreen(true);
+    // (widgetApi as WidgetApiImpl).matrixWidgetApi.setAlwaysOnScreen(true);
 
     window.location.replace(url);
     // const iframe = document.getElementById("widgetFrame") as HTMLIFrameElement;
