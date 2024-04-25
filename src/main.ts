@@ -82,7 +82,7 @@ async function setup() {
       }
     };
     // if there is a running session join it
-    session;
+    session.memberships[0]?.
     // if there is no running session create one with default livekit sfu.
   }
 }
