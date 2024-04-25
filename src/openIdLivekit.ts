@@ -16,8 +16,7 @@ limitations under the License.
 
 import { IOpenIDToken, MatrixClient } from "matrix-js-sdk";
 import { logger } from "matrix-js-sdk/src/logger";
-
-import { LivekitFocus } from "./LivekitFocus";
+import { LivekitFocus } from "./focusLivekit";
 
 export interface SFUConfig {
   url: string;

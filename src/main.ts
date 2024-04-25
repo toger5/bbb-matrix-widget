@@ -1,17 +1,14 @@
 import "./style.css";
-import { IOpenIDCredentials } from "matrix-widget-api";
 import { widget } from "./widget";
 
-import { MatrixClient } from "matrix-js-sdk/src/matrix";
-import { MatrixRTCSession } from "matrix-js-sdk/src/matrixrtc/MatrixRTCSession";
 import { makeFocus } from "./focusLivekit";
+import { getSFUConfigWithOpenID } from "./openIdLivekit";
+import { getBBBJoinUrl } from "./joinUrlBigBlueButton";
 
-const STATE_EVENT_CALL_MEMBERS = "m.call.member";
-const STATE_EVENT_ROOM_NAME = "m.room.name";
 // TODO load this from the right place
 // this should either be done by reading the current rtc session in the room or by using a config.json fallback
 const BBB_SERVICE_URL = "https://droplet-7099.meetbbb.com/service";
-export const LIVEKIT_SERVICE_URL = "https://livekit-jwt.call.element.dev";
+const LIVEKIT_SERVICE_URL = "https://livekit-jwt.call.element.dev";
 
 async function setup() {
   if (!widget) {
@@ -60,73 +57,47 @@ async function setup() {
     iframe.src = url;
 
     const session = client.matrixRTC.getRoomSession(room);
-    const focus = makeFocus(room.roomId);
 
-    window.onmessage = (event) => {
+    const focus = makeFocus(room.roomId, session, LIVEKIT_SERVICE_URL);
+    const sfuPromise = getSFUConfigWithOpenID(client, focus);
+    console.log("bbb-widget -- got focus: ", focus);
+
+    window.onmessage = async (event) => {
+      console.log("bbb-widget -- got event: ", event);
+
       if (event.data.api !== "fromBBB") return;
 
       switch (event.data.action) {
         case "leave":
+          console.log("bbb-widget -- Leaving room session");
           session.leaveRoomSession();
           widget?.api.setAlwaysOnScreen(false);
           break;
 
         case "join":
+          console.log("bbb-widget -- Joining room session");
           widget?.api.setAlwaysOnScreen(true);
-          session.joinRoomSession([]);
-          session.joinRoomSession([]);
+          session.joinRoomSession([focus]);
           break;
         case "request_credentials":
+          // console.log("Requesting credentials");
+          const sfuConf = await sfuPromise;
           const response = {
             api: "toBBB",
             action: "lk-credentials",
             data: {
-              jwt: "test",
-              websocket_url: "test",
-              lk_alias: "test",
+              jwt: sfuConf?.jwt,
+              websocket_url: sfuConf?.url,
+              lk_alias: focus.livekit_alias,
             },
           };
+          console.log("bbb-widget -- Sent credentials", response);
           iframe.contentWindow?.postMessage(response, "*");
+          break;
+        case "send_message":
+          client.sendTextMessage(roomId, event.data.data.message);
       }
     };
-  }
-}
-
-interface BBBJoinUrl {
-  url: string;
-}
-
-async function getBBBJoinUrl(
-  deviceId: string,
-  roomId: string,
-  displayName: string,
-  bbbServiceUrl: string,
-  roomName: string,
-  openIDToken: IOpenIDCredentials
-): Promise<BBBJoinUrl> {
-  try {
-    const health = await fetch(bbbServiceUrl + "/healthz");
-    console.log("Health check response: ", health);
-
-    const res = await fetch(bbbServiceUrl + "/get_join_url", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        room_name: roomName,
-        room_id: roomId,
-        openid_token: openIDToken,
-        device_id: deviceId,
-        display_name: displayName,
-      }),
-    });
-    if (!res.ok) {
-      throw new Error("SFU Config fetch failed with status code " + res.status);
-    }
-    return await res.json();
-  } catch (e) {
-    throw new Error("SFU Config fetch failed with exception " + e);
   }
 }
 
