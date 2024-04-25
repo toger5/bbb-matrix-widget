@@ -9,12 +9,15 @@ import { WidgetApiImpl } from "@matrix-widget-toolkit/api";
 import { initClient } from "./matrix-utils";
 import { widget } from "./widget";
 import { MatrixClient } from "matrix-js-sdk/src/matrix";
+import { MatrixRTCSession } from "matrix-js-sdk/src/matrixrtc/MatrixRTCSession";
+import { makeFocus } from "./focusLivekit";
 
 const STATE_EVENT_CALL_MEMBERS = "m.call.member";
 const STATE_EVENT_ROOM_NAME = "m.room.name";
 // TODO load this from the right place
 // this should either be done by reading the current rtc session in the room or by using a config.json fallback
 const BBB_SERVICE_URL = "https://droplet-7099.meetbbb.com/service";
+export const LIVEKIT_SERVICE_URL = "https://livekit-jwt.call.element.dev";
 
 const initialCapabilities = [
   WidgetEventCapability.forStateEvent(
@@ -76,10 +79,6 @@ async function setup() {
       token
     );
 
-    // if there is a running session join it
-
-    // if there is no running session create one with default livekit sfu.
-
     console.log("Join URL: ", url);
     appContainer.innerText = `Token: ${t}\n\nServer: ${d}\nroomName: ${n}\nroomId: ${r}\nJoinURL: ${url}`;
     // (widgetApi as WidgetApiImpl).matrixWidgetApi.setAlwaysOnScreen(true);
@@ -93,6 +92,7 @@ async function setup() {
     iframe.src = url;
 
     const session = client.matrixRTC.getRoomSession(room);
+    const focus = makeFocus(room.roomId);
     session.joinRoomSession([]);
     widget.api.setAlwaysOnScreen(true);
     let seconds = 0;
@@ -101,7 +101,7 @@ async function setup() {
         seconds++;
         // eslint-disable-next-line no-console
         console.log("Leaving meeting in: ", seconds);
-        appContainer.innerText = `Leave in 20 - ${seconds} Token: ${t}\n\nServer: ${d}\nroomName: ${n}\nroomId: ${r}\nJoinURL: unknown`;
+        appContainer.innerText = `Leave in 20 - ${seconds} Token: ${t}\n\nServer: ${d}\nroomName: ${n}\nroomId: ${r}\nJoinURL: ${url}`;
 
         setTimeout(() => count(), 1000);
       } else {
