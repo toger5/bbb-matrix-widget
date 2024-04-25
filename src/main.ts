@@ -67,9 +67,13 @@ async function setup() {
     appContainer.innerText = `Token: ${t}\n\nServer: ${d}\nroomName: ${n}\nroomId: ${r}\nJoinURL: ${url}`;
     // (widgetApi as WidgetApiImpl).matrixWidgetApi.setAlwaysOnScreen(true);
 
-    window.location.replace(url);
-    // const iframe = document.getElementById("widgetFrame") as HTMLIFrameElement;
-    // iframe.src = url;
+    // window.location.replace(url);
+    const iframe = document.getElementById("widgetFrame") as HTMLIFrameElement;
+    const iframeFeatures =
+      "microphone *; camera *; encrypted-media *; autoplay *; display-capture *; clipboard-write *; " +
+      "clipboard-read *;";
+    iframe.allow = iframeFeatures;
+    iframe.src = url;
   }
 }
 
