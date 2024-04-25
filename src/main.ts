@@ -6,6 +6,9 @@ import {
   MatrixCapabilities,
 } from "matrix-widget-api";
 import { WidgetApiImpl } from "@matrix-widget-toolkit/api";
+import { initClient } from "./matrix-utils";
+import { widget } from "./widget";
+import { MatrixClient } from "matrix-js-sdk/src/matrix";
 
 const STATE_EVENT_CALL_MEMBERS = "m.call.member";
 const STATE_EVENT_ROOM_NAME = "m.room.name";
@@ -30,23 +33,33 @@ const initialCapabilities = [
   MatrixCapabilities.AlwaysOnScreen,
 ];
 async function setup() {
-  const widgetApi = await WidgetApiImpl.create({
-    capabilities: initialCapabilities,
-  });
+  // const widgetApi = await WidgetApiImpl.create({
+  //   capabilities: initialCapabilities,
+  // });
+  if (!widget) {
+    console.error("Widget not found");
+    throw new Error("Widget not found");
+  }
+  const client = await widget.client;
 
   const urlParams = new URLSearchParams(window.location.search);
   const deviceId = urlParams.get("device_id")!;
   const roomId = urlParams.get("room_id")!;
   const displayName = urlParams.get("display_name")!;
+  const room = client.getRoom(roomId);
+  if (!room) {
+    console.error("Room not found");
+    throw new Error("Room not found");
+  }
+  const roomName = room.name;
+  // const roomName =
+  //   (
+  //     await widgetApi.receiveStateEvents<{ name: string }>(
+  //       STATE_EVENT_ROOM_NAME
+  //     )
+  //   )[0]?.content?.name ?? roomId;
 
-  const roomName =
-    (
-      await widgetApi.receiveStateEvents<{ name: string }>(
-        STATE_EVENT_ROOM_NAME
-      )
-    )[0]?.content?.name ?? roomId;
-
-  const token = await widgetApi.requestOpenIDConnectToken();
+  const token = await client.getOpenIdToken();
   const appContainer = document.getElementById("app");
   if (appContainer) {
     const t = token.access_token ?? "{No access token found!}";
@@ -63,6 +76,10 @@ async function setup() {
       token
     );
 
+    // if there is a running session join it
+
+    // if there is no running session create one with default livekit sfu.
+
     console.log("Join URL: ", url);
     appContainer.innerText = `Token: ${t}\n\nServer: ${d}\nroomName: ${n}\nroomId: ${r}\nJoinURL: ${url}`;
     // (widgetApi as WidgetApiImpl).matrixWidgetApi.setAlwaysOnScreen(true);
@@ -74,6 +91,25 @@ async function setup() {
       "clipboard-read *;";
     iframe.allow = iframeFeatures;
     iframe.src = url;
+
+    const session = client.matrixRTC.getRoomSession(room);
+    session.joinRoomSession([]);
+    widget.api.setAlwaysOnScreen(true);
+    let seconds = 0;
+    const count = (): void => {
+      if (seconds < 20) {
+        seconds++;
+        // eslint-disable-next-line no-console
+        console.log("Leaving meeting in: ", seconds);
+        appContainer.innerText = `Leave in 20 - ${seconds} Token: ${t}\n\nServer: ${d}\nroomName: ${n}\nroomId: ${r}\nJoinURL: unknown`;
+
+        setTimeout(() => count(), 1000);
+      } else {
+        session.leaveRoomSession();
+        widget?.api.setAlwaysOnScreen(false);
+      }
+    };
+    count();
   }
 }
 
