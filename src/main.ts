@@ -4,6 +4,7 @@ import { widget } from "./widget";
 import { makeFocus } from "./focusLivekit";
 import { getSFUConfigWithOpenID } from "./openIdLivekit";
 import { getBBBJoinUrl } from "./joinUrlBigBlueButton";
+import { MatrixEvent, RoomEvent } from "matrix-js-sdk";
 
 // TODO load this from the right place
 // this should either be done by reading the current rtc session in the room or by using a config.json fallback
@@ -15,8 +16,9 @@ async function setup() {
     console.error("Widget not found");
     throw new Error("Widget not found");
   }
+  widget.api.requestCapabilityToReceiveEvent("m.room.message");
+  widget.api.requestCapabilityToSendEvent("m.room.message");
   const client = await widget.client;
-
   const urlParams = new URLSearchParams(window.location.search);
   const deviceId = urlParams.get("device_id")!;
   const roomId = urlParams.get("room_id")!;
@@ -62,8 +64,27 @@ async function setup() {
     const sfuPromise = getSFUConfigWithOpenID(client, focus);
     console.log("bbb-widget -- got focus: ", focus);
 
+    client.on(RoomEvent.Timeline, (event) => {
+      if (event.getType() === "m.room.message") {
+        const matrixEvent = event as MatrixEvent;
+        const content = matrixEvent.getContent();
+        if (content.msgtype === "m.text") {
+          const message = content.body;
+          const response = {
+            api: "toBBB",
+            action: "send_message",
+            data: {
+              message,
+            },
+          };
+          console.log("bbb-widget -- Matrix message to BBB", response);
+          iframe.contentWindow?.postMessage(response, "*");
+        }
+      }
+    });
+
     window.onmessage = async (event) => {
-      console.log("bbb-widget -- got event: ", event);
+      console.log("bbb-widget -- got postmessage event from BBB: ", event);
 
       if (event.data.api !== "fromBBB") return;
 
