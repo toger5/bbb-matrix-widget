@@ -1,10 +1,14 @@
+window.global ||= window;
 import "./style.css";
 import { widget } from "./widget";
 
 import { makeFocus } from "./focusLivekit";
 import { getSFUConfigWithOpenID } from "./openIdLivekit";
 import { getBBBJoinUrl } from "./joinUrlBigBlueButton";
-import { MatrixEvent, RoomEvent } from "matrix-js-sdk";
+import {
+  MatrixEvent,
+  RoomEvent,
+} from "../node_modules/matrix-js-sdk/src/matrix";
 
 // TODO load this from the right place
 // this should either be done by reading the current rtc session in the room or by using a config.json fallback
