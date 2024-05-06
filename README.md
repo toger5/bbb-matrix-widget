@@ -1,5 +1,5 @@
 ## A widget wrapper for BigBlueButton
-It is a widget that will communicate over the widget api with element web.
+This is a widget that will communicate over the widget api with element web.
 
 ### It does the following
  - Get an openId token form element web.
