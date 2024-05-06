@@ -1,7 +1,7 @@
 ## A widget wrapper for BigBlueButton
 It is a widget that will communicate over the widget api with element web.
 
-It does the following
+### It does the following
  - Get an openId token form element web.
  - Connect to the bbb jwt auth service with that token and get a bbb join url.
  - Show the bbb html frontend in an iframe using the aquired join url.
@@ -13,7 +13,7 @@ It does the following
    - This is a livekit jwt service as used for element call. (See the element call repo for more details on how to host element call)
 
 
-Build and deploy
+## Build and deploy
  - clone the repo.
  - run `yarn` in the cloned folder.
  - run `yarn build`. Vite will build a dist folder with the static page.
