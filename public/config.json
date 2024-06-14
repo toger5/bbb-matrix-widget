@@ -1,0 +1,4 @@
+{
+    "bbbServiceUrl": "https://some-bbb-domain.com/widget",
+    "livekitServiceUrl": "https://livekit-jwt.call.element.dev"
+}

@@ -10,12 +10,26 @@ import {
   RoomEvent,
 } from "../node_modules/matrix-js-sdk/src/matrix";
 
-// TODO load this from the right place
-// this should either be done by reading the current rtc session in the room or by using a config.json fallback
-const BBB_SERVICE_URL = "https://droplet-7099.meetbbb.com/service";
-const LIVEKIT_SERVICE_URL = "https://livekit-jwt.call.element.dev";
+async function fetchConfig() {
+  try {
+    const response = await fetch('/config.json');
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    return await response.json();
+  } catch (error) {
+    console.error("Failed to load configuration:", error);
+    throw error;
+  }
+}
 
 async function setup() {
+
+  const config = await fetchConfig();
+  const bbbServiceUrl = config.bbbServiceUrl;
+  const livekitServiceUrl = config.livekitServiceUrl;
+  console.log("bbb-widget -- config: ", config);
+
   if (!widget) {
     console.error("Widget not found");
     throw new Error("Widget not found");
@@ -48,7 +62,7 @@ async function setup() {
       deviceId,
       roomId,
       displayName,
-      BBB_SERVICE_URL,
+      bbbServiceUrl,
       roomName,
       token
     );
@@ -64,7 +78,7 @@ async function setup() {
 
     const session = client.matrixRTC.getRoomSession(room);
 
-    const focus = makeFocus(room.roomId, session, LIVEKIT_SERVICE_URL);
+    const focus = makeFocus(room.roomId, session, livekitServiceUrl);
     const sfuPromise = getSFUConfigWithOpenID(client, focus);
     console.log("bbb-widget -- got focus: ", focus);
 
